@@ -1,16 +1,18 @@
-# AI Merchant Commerce Platform — Backend API (Phase 1)
+# AI Merchant Commerce Platform — Backend Service
 
-Production-grade FastAPI backend service powering merchant catalog management, inventory safety validations, and order processing.
+Production-grade FastAPI backend service powering merchant catalog management, LangGraph agentic revenue intelligence, deterministic pricing safety, and Human-In-The-Loop (HITL) approval workflows.
 
 ---
 
 ## 🛠 Tech Stack
 
 * **Language**: Python 3.12+
-* **Framework**: FastAPI
-* **Validation**: Pydantic v2 & Pydantic Settings
-* **ORM / Database**: SQLAlchemy 2.0 with SQLite (WAL mode, Foreign Keys explicitly enabled via `PRAGMA foreign_keys=ON;`)
-* **Testing**: Pytest & HTTPX TestClient
+* **Framework**: FastAPI (Asynchronous REST API, auto-generated OpenAPI & Swagger docs)
+* **Agentic Framework**: LangGraph & LangChain Core
+* **LLM Providers**: `langchain-google-genai` (Google Gemini 2.5 / 1.5 Flash), `langchain-groq` (Groq Llama 3.3 70B)
+* **Validation**: Pydantic v2 & Pydantic-Settings
+* **ORM & Database**: SQLAlchemy 2.0 with SQLite (WAL mode, explicit foreign keys enabled via `PRAGMA foreign_keys=ON;`)
+* **Testing**: Pytest & HTTPX TestClient (60 automated unit & integration tests)
 
 ---
 
@@ -41,20 +43,28 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-Default configuration in `.env`:
+Key environment variables in `.env`:
 ```ini
 DATABASE_URL=sqlite:///./merchant_commerce.db
 APP_ENV=development
 CORS_ORIGINS=["http://localhost:5173","http://127.0.0.1:5173"]
 API_V1_STR=/api/v1
 PROJECT_NAME="AI Merchant Commerce Platform"
+
+# LLM Configuration
+PRIMARY_LLM_PROVIDER=gemini # or "groq"
+GEMINI_API_KEY="your_gemini_key"
+GEMINI_MODEL=gemini-2.5-flash
+GROQ_API_KEY="your_groq_key"
+GROQ_MODEL=llama-3.3-70b-versatile
+MOCK_AI_MODE=false
 ```
 
 ---
 
 ## 📦 Database Seeding
 
-Populate the database with demo merchant **Chennai Sports Store**, 5 catalog products, 5 customers, and 8 historical orders:
+Populate the database with demo merchant **Chennai Sports Store**, catalog products, customers, and historical order co-purchases:
 
 ```bash
 python seed.py
@@ -62,40 +72,41 @@ python seed.py
 
 ---
 
-## 🧪 Running Automated Tests
+## 🧪 Automated Testing
 
-Run the complete test suite (23 unit & integration tests):
+Run the complete test suite (60 unit, integration, and safety tests):
 
 ```bash
-pytest -v
+.\venv\Scripts\python.exe -m pytest -v
 ```
 
-Tests cover:
-* Service Health endpoint
-* Merchant CRUD & duplicate email constraint enforcement
-* Product CRUD, keyword search, category & status filtering
-* Customer creation & listing
-* Order creation with server-side pricing calculations
-* Inventory stock validation & insufficient stock rejection (HTTP 400)
-* Cross-merchant product order rejection (HTTP 400)
-* Invalid product reference rejection (HTTP 400)
+### Test Coverage Highlights:
+* **Agent Execution & Graph**: Multi-node LangGraph pipeline execution, merchant context loading, co-purchase affinity extraction.
+* **LLM Failover**: Gemini $\leftrightarrow$ Groq failover and deterministic local mock engine fallback.
+* **Safety Boundaries**: Rejection of price modification attempts, discount ceiling violations, and inactive/out-of-stock product promotions.
+* **Growth Action Proposals**: Server-side deterministic bundle price calculations, margin checks, and discount calculations.
+* **Merchant Approvals**: One-click approval, rejection reason logging, and pre-execution inventory revalidation.
+* **Idempotency & Resilience**: Duplicate approval deduplication and simulated failure rollback.
+* **Commerce Foundation**: Server-side order pricing, stock level decrements, and foreign key integrity.
 
 ---
 
 ## ⚡ Running the API Server
 
 ```bash
-uvicorn app.main.app --reload --port 8000
+uvicorn app.main:app --reload --port 8000
 ```
 
-* **API Health Check**: [http://127.0.0.1:8000/api/v1/health](http://127.0.0.1:8000/api/v1/health)
+* **Health Check**: [http://127.0.0.1:8000/api/v1/health](http://127.0.0.1:8000/api/v1/health)
 * **Interactive OpenAPI Docs (Swagger)**: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 * **ReDoc Documentation**: [http://127.0.0.1:8000/redoc](http://127.0.0.1:8000/redoc)
 
 ---
 
-## 🔒 Important Security & Architecture Rules
+## 🔒 Security & Architecture Principles
 
-1. **Server-Side Pricing**: The backend never accepts client-provided item prices or order totals. All unit prices are extracted from the verified product catalog and summed on the backend.
-2. **Inventory Safety**: Orders are checked against real-time stock levels. Orders requesting more items than available are rejected with HTTP 400.
-3. **SQLite Foreign Keys**: SQLite foreign key constraints are enforced at connection initialization.
+1. **Strict Read-Only Agent Boundary**: The AI Agent is purely analytical. It has zero capability to mutate prices, charge cards, or activate campaigns without merchant review.
+2. **Server-Side Pricing Engine**: The backend never accepts client-provided item prices or order totals. All unit prices are pulled from verified product records and calculated on the backend.
+3. **Deterministic Safety Policies**: All action proposals are checked against `MerchantAiPolicy` limits (max discount %, max duration, active product status).
+4. **Pre-Execution Revalidation**: Before activating an approved campaign, the system re-validates current real-time stock levels.
+5. **Immutable Audit Logging**: Every action by `AI_AGENT`, `MERCHANT`, or `SYSTEM` is recorded in `audit_logs` and `agent_actions`.
