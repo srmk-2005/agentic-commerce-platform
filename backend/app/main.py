@@ -8,7 +8,9 @@ from app.routers import (
     agent_router,
     approvals_router,
     audit_router,
+    buyer_router,
     campaigns_router,
+    commerce_router,
     customers_router,
     growth_router,
     merchants_router,
@@ -62,6 +64,8 @@ app.include_router(approvals_router, prefix=settings.API_V1_STR)
 app.include_router(campaigns_router, prefix=settings.API_V1_STR)
 app.include_router(offers_router, prefix=settings.API_V1_STR)
 app.include_router(audit_router, prefix=settings.API_V1_STR)
+app.include_router(commerce_router, prefix=settings.API_V1_STR)
+app.include_router(buyer_router, prefix=settings.API_V1_STR)
 
 
 @app.get("/", include_in_schema=False)

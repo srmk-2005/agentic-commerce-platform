@@ -3,6 +3,8 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { DashboardPage } from './pages/DashboardPage';
 import { AiAssistantPage } from './pages/AiAssistantPage';
+import { AiCommercePage } from './pages/AiCommercePage';
+import { AiBuyerPage } from './pages/AiBuyerPage';
 import { ApprovalsPage } from './pages/ApprovalsPage';
 import { CampaignsPage } from './pages/CampaignsPage';
 import { AuditPage } from './pages/AuditPage';
@@ -33,6 +35,14 @@ export const App: React.FC = () => {
           <Route
             path="/ai-assistant"
             element={<AiAssistantPage currentMerchant={currentMerchant} />}
+          />
+          <Route
+            path="/ai-commerce"
+            element={<AiCommercePage currentMerchant={currentMerchant} />}
+          />
+          <Route
+            path="/ai-buyer"
+            element={<AiBuyerPage currentMerchant={currentMerchant} />}
           />
           <Route
             path="/approvals"

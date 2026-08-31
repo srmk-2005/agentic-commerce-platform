@@ -41,7 +41,113 @@ export type AgentActionStatus =
   | 'EXECUTED'
   | 'FAILED';
 
-export type ActorType = 'MERCHANT' | 'AI_AGENT' | 'SYSTEM';
+export type ActorType = 'MERCHANT' | 'AI_AGENT' | 'AI_BUYER' | 'SYSTEM';
+
+export type ProductAvailability = 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK' | 'INACTIVE';
+
+export interface AIProduct {
+  id: number;
+  merchant_id: number;
+  name: string;
+  description?: string | null;
+  category: string;
+  price: number;
+  currency: string;
+  availability: ProductAvailability;
+  stock_quantity: number;
+  sku: string;
+  attributes: Record<string, any>;
+  purchase_constraints: Record<string, any>;
+}
+
+export interface AIMerchantProfile {
+  merchant_id: number;
+  merchant_name: string;
+  description?: string | null;
+  currency: string;
+  categories: string[];
+  commerce_capabilities: Record<string, boolean>;
+}
+
+export interface AIMerchantManifest {
+  merchant_id: number;
+  name: string;
+  version: string;
+  capabilities: {
+    catalog: boolean;
+    search: boolean;
+    product_details: boolean;
+    inventory: boolean;
+    order_creation: boolean;
+    payment: boolean;
+  };
+  endpoints: Record<string, string>;
+}
+
+export interface AICatalogResponse {
+  merchant_id?: number | null;
+  total_count: number;
+  products: AIProduct[];
+}
+
+export interface AISearchResult {
+  product: AIProduct;
+  relevance_score: number;
+  match_reasons: string[];
+}
+
+export interface AISearchResponse {
+  query?: string | null;
+  total_matches: number;
+  results: AISearchResult[];
+}
+
+export interface AIOrderItemResponse {
+  product_id: number;
+  name: string;
+  quantity: number;
+  unit_price: number;
+  subtotal: number;
+}
+
+export interface AIOrderResponse {
+  order_id: number;
+  merchant_id: number;
+  status: string;
+  items: AIOrderItemResponse[];
+  total_amount: number;
+  currency: string;
+  payment_status: string;
+  idempotency_key?: string | null;
+  created_at: string;
+}
+
+export interface BuyerProductOption {
+  id: number;
+  name: string;
+  category: string;
+  price: number;
+  availability: string;
+  stock_quantity: number;
+  relevance_score: number;
+  reason?: string | null;
+}
+
+export interface BuyerChatResponse {
+  response: string;
+  candidates: BuyerProductOption[];
+  selected_product?: BuyerProductOption | null;
+  order_created?: AIOrderResponse | null;
+  execution_steps: string[];
+}
+
+export interface BuyerSimulationResponse {
+  success: boolean;
+  order?: AIOrderResponse | null;
+  error_message?: string | null;
+  explainability: string;
+  payment_note: string;
+}
 
 export interface SafetyCheckItem {
   check_name: string;
@@ -315,6 +421,8 @@ export interface Order {
   status: OrderStatus;
   total_amount: number;
   currency: string;
+  idempotency_key?: string | null;
+  payment_status: string;
   created_at: string;
   updated_at: string;
   items: OrderItem[];

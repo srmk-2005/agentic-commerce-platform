@@ -95,6 +95,7 @@ class AgentActionStatus(str, enum.Enum):
 class ActorType(str, enum.Enum):
     MERCHANT = "MERCHANT"
     AI_AGENT = "AI_AGENT"
+    AI_BUYER = "AI_BUYER"
     SYSTEM = "SYSTEM"
 
 
@@ -174,6 +175,8 @@ class Order(Base):
     status = Column(Enum(OrderStatus), default=OrderStatus.PENDING, nullable=False, index=True)
     total_amount = Column(Float, nullable=False)
     currency = Column(String(10), default="INR", nullable=False)
+    idempotency_key = Column(String(255), unique=True, nullable=True, index=True)
+    payment_status = Column(String(50), default="NOT_AVAILABLE", nullable=False)
     created_at = Column(DateTime(timezone=True), default=utc_now, nullable=False)
     updated_at = Column(DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False)
 

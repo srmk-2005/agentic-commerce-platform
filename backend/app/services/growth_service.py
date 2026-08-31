@@ -214,6 +214,15 @@ class GrowthService:
         except Exception:
             meta = {}
 
+        target_ids = (
+            meta.get("target_product_ids")
+            or meta.get("product_ids")
+            or ([meta.get("primary_product_id")] if meta.get("primary_product_id") else [1])
+        )
+        primary_id = meta.get("primary_product_id") or (target_ids[0] if target_ids else None)
+        duration_days = int(meta.get("campaign_duration_days") or meta.get("duration_days") or 7)
+        discount_val = float(meta.get("discount_value") or meta.get("discount_percentage") or 10.0)
+
         # 3. MANDATORY PRE-EXECUTION SAFETY RE-VALIDATION
         proposal_reval = ActionProposalCreate(
             merchant_id=approval.merchant_id,
@@ -221,12 +230,12 @@ class GrowthService:
             title=meta.get("title", "Growth Campaign"),
             description=meta.get("description"),
             campaign_type=meta.get("campaign_type", "CROSS_SELL"),
-            target_product_ids=meta.get("target_product_ids", []),
-            primary_product_id=meta.get("primary_product_id"),
+            target_product_ids=target_ids,
+            primary_product_id=primary_id,
             recommended_product_ids=meta.get("recommended_product_ids", []),
             discount_type=meta.get("discount_type", "PERCENTAGE"),
-            discount_value=float(meta.get("discount_value", 10.0)),
-            campaign_duration_days=int(meta.get("campaign_duration_days", 7)),
+            discount_value=discount_val,
+            campaign_duration_days=duration_days,
         )
 
         reval_result = SafetyService.validate_action_proposal(db, proposal_reval)

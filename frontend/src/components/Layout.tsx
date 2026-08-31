@@ -12,6 +12,8 @@ import {
   ShieldCheck,
   Megaphone,
   History,
+  Globe,
+  ShoppingCart,
 } from 'lucide-react';
 import { Merchant } from '../types';
 import { merchantService } from '../services/merchantService';
@@ -59,6 +61,10 @@ export const Layout: React.FC<LayoutProps> = ({ currentMerchant, onSelectMerchan
         return 'Executive Overview';
       case '/ai-assistant':
         return 'Merchant AI Assistant';
+      case '/ai-commerce':
+        return 'AI Commerce Readiness & Manifest';
+      case '/ai-buyer':
+        return 'Simulated AI Buyer Simulator';
       case '/approvals':
         return 'Approvals & Governance Queue';
       case '/campaigns':
@@ -105,7 +111,41 @@ export const Layout: React.FC<LayoutProps> = ({ currentMerchant, onSelectMerchan
             className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
           >
             <Bot size={18} color="#818CF8" />
-            <span>AI Assistant</span>
+            <span>AI Growth Agent</span>
+          </NavLink>
+
+          <div className="nav-heading" style={{ marginTop: '14px' }}>
+            Agentic Interface (Phase 4)
+          </div>
+
+          <NavLink
+            to="/ai-commerce"
+            className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+          >
+            <Globe size={18} color="#38BDF8" />
+            <span>AI Readiness</span>
+          </NavLink>
+
+          <NavLink
+            to="/ai-buyer"
+            className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+          >
+            <ShoppingCart size={18} color="#34D399" />
+            <span>AI Buyer Simulator</span>
+            <span
+              style={{
+                marginLeft: 'auto',
+                fontSize: '0.65rem',
+                fontWeight: 800,
+                padding: '2px 6px',
+                borderRadius: '8px',
+                background: 'rgba(52, 211, 153, 0.2)',
+                color: '#34d399',
+                border: '1px solid rgba(52, 211, 153, 0.35)',
+              }}
+            >
+              DEMO
+            </span>
           </NavLink>
 
           <div className="nav-heading" style={{ marginTop: '14px' }}>
@@ -207,13 +247,13 @@ export const Layout: React.FC<LayoutProps> = ({ currentMerchant, onSelectMerchan
             <span
               className="badge-tag"
               style={{
-                background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(16, 185, 129, 0.2) 100%)',
-                color: '#a5b4fc',
-                border: '1px solid rgba(99, 102, 241, 0.4)',
+                background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.2) 0%, rgba(99, 102, 241, 0.2) 100%)',
+                color: '#38bdf8',
+                border: '1px solid rgba(56, 189, 248, 0.4)',
                 fontWeight: 700,
               }}
             >
-              Phase 3: Revenue Actions & Approvals
+              Phase 4: AI Catalog & Commerce Interface
             </span>
             {apiHealthy !== null && (
               <span
