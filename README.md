@@ -70,10 +70,10 @@ The **AI Merchant Growth & Agentic Commerce Platform** empowers merchants to sca
 
 ```mermaid
 flowchart TD
-    Merchant[Merchant Owner / Operator] --> WebUI[React 18 + TypeScript Glassmorphic UI]
-    ExternalAIBuyer[External AI Buyer / Agent] --> AIApiLayer["AI Commerce API (/api/v1/ai/*)"]
+    Merchant["Merchant Owner / Operator"] --> WebUI["React 18 + TypeScript Glassmorphic UI"]
+    ExternalAIBuyer["External AI Buyer / Agent"] --> AIApiLayer["AI Commerce API (/api/v1/ai/*)"]
     
-    subgraph FrontendApp [Frontend Layer - Vite / React]
+    subgraph FrontendApp ["Frontend Layer - Vite / React"]
         WebUI --> DashboardPage["/dashboard (KPI Metrics & Insights)"]
         WebUI --> AIAssistantPage["/ai-assistant (Merchant Growth Agent & Proposals)"]
         WebUI --> AICommercePage["/ai-commerce (AI Readiness & Manifest Viewer)"]
@@ -85,25 +85,25 @@ flowchart TD
         WebUI --> CatalogPages["/products, /orders, /customers (Commerce Operations)"]
     end
 
-    subgraph BackendApp [Backend Layer - FastAPI]
+    subgraph BackendApp ["Backend Layer - FastAPI"]
         AIApiLayer --> RouterCommerce["/api/v1/ai/catalog, search, orders"]
         AIApiLayer --> RouterAIPayments["/api/v1/ai/payments/propose, approve, reject"]
         WebUI --> RouterPayments["/api/v1/payments/verify, simulate-failure, list"]
         
-        RouterCommerce --> CommerceEngine[Deterministic Commerce & Search Engine]
-        RouterAIPayments --> PaymentService[Payment & Safety Orchestration Engine]
-        RouterPayments --> RazorpayAdapter[Isolated Razorpay Test-Mode Adapter]
+        RouterCommerce --> CommerceEngine["Deterministic Commerce & Search Engine"]
+        RouterAIPayments --> PaymentService["Payment & Safety Orchestration Engine"]
+        RouterPayments --> RazorpayAdapter["Isolated Razorpay Test-Mode Adapter"]
         
-        PaymentService --> PolicyEngine[Deterministic Safety & Limits Engine]
-        PaymentService --> AuditService[Immutable Audit & Governance Ledger]
+        PaymentService --> PolicyEngine["Deterministic Safety & Limits Engine"]
+        PaymentService --> AuditService["Immutable Audit & Governance Ledger"]
     end
 
-    subgraph ExternalServices [Third-Party Services (Test Mode Only)]
-        RazorpayAdapter --> RazorpayAPI[Razorpay Test-Mode API & HMAC-SHA256 Verifier]
+    subgraph ExternalServices ["Third-Party Services (Test Mode Only)"]
+        RazorpayAdapter --> RazorpayAPI["Razorpay Test-Mode API & HMAC-SHA256 Verifier"]
     end
 
-    subgraph DatabaseLayer [Persistence Layer - SQLite / ACID Relational Schema]
-        CommerceEngine --> RelationalDB[(ACID Relational Database)]
+    subgraph DatabaseLayer ["Persistence Layer - SQLite / ACID Relational Schema"]
+        CommerceEngine --> RelationalDB[("ACID Relational Database")]
         PaymentService --> RelationalDB
         AuditService --> RelationalDB
     end
@@ -306,14 +306,14 @@ cd backend
 
 ## 10. Testing & Verification Suite
 
-### Automated PyTest Suite (106 Tests - 100% Pass Rate)
+### Automated PyTest Suite (107 Tests - 100% Pass Rate)
 Run the full automated test suite:
 ```bash
 cd backend
 .\venv\Scripts\pytest.exe -v
 ```
 
-All 106 tests across all 7 phases pass cleanly:
+All 107 tests across all 7 phases pass cleanly:
 - `tests/test_phase7_integration.py` (Full end-to-end commerce lifecycle)
 - `tests/test_phase7_hardening.py` (Health check, state machines, demo reset, webhook security)
 - `tests/test_phase6_sessions.py` (Session creation, state machine, TTL expiration)
