@@ -140,6 +140,8 @@ export interface BuyerChatResponse {
   order_created?: AIOrderResponse | null;
   payment_intent?: PaymentIntent | null;
   execution_steps: string[];
+  provider_used?: string;
+  is_fallback_mode?: boolean;
 }
 
 export interface BuyerSimulationResponse {

@@ -128,3 +128,29 @@ def test_revalidation_catches_pre_execution_stock_out(db_session):
     # Check approval marked REJECTED
     approval = db_session.query(Approval).filter(Approval.id == prop.approval_id).first()
     assert approval.status == ApprovalStatus.REJECTED
+
+
+def test_offer_product_id_populated_for_slow_moving_and_single_product_campaigns(db_session):
+    m_id, p1_id, p2_id = _setup_approval_env(db_session)
+
+    # 1. Propose and approve a slow-moving liquidation campaign
+    slow_proposal = ActionProposalCreate(
+        merchant_id=m_id,
+        action_type="SLOW_MOVING_PROMOTION",
+        title="Liquidation Campaign",
+        campaign_type="SLOW_MOVING_PRODUCT",
+        target_product_ids=[p2_id],
+        primary_product_id=p2_id,
+        discount_type="PERCENTAGE",
+        discount_value=15.0,
+        campaign_duration_days=7,
+    )
+    prop = GrowthService.propose_action(db_session, slow_proposal)
+    exec_res = GrowthService.approve_action(db_session, prop.approval_id)
+
+    offer = db_session.query(Offer).filter(Offer.campaign_id == exec_res["campaign_id"]).first()
+    assert offer is not None
+    assert offer.product_id == p2_id, f"Expected offer product_id to be {p2_id}, got {offer.product_id}"
+    assert offer.product is not None
+    assert offer.product.name == "Socks"
+

@@ -47,6 +47,8 @@ export const AiBuyerPage: React.FC<AiBuyerPageProps> = ({ currentMerchant }) => 
   const [messages, setMessages] = useState<BuyerMessage[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [activeProvider, setActiveProvider] = useState<string>('LLM Engine: Gemini / Groq');
+  const [isFallback, setIsFallback] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<BuyerProductOption | null>(null);
   const [orderQuantity, setOrderQuantity] = useState<number>(1);
   const [orderingLoading, setOrderingLoading] = useState(false);
@@ -62,7 +64,7 @@ export const AiBuyerPage: React.FC<AiBuyerPageProps> = ({ currentMerchant }) => 
       {
         id: 'init-buyer',
         sender: 'buyer_agent',
-        text: "👋 Hello! I am an **External AI Buyer Agent**.\n\nI can autonomously query the merchant's machine-readable catalog, rank products deterministically, verify real-time stock, and prepare orders without accessing the merchant's internal database.",
+        text: "👋 Hello! I am an **External AI Buyer Agent** powered by live LLM reasoning.\n\nI can autonomously query the merchant's machine-readable catalog, evaluate items with multi-factor ranking, verify real-time stock, and prepare orders under human-governed spend limits.",
         timestamp: new Date(),
       },
     ]);
@@ -89,6 +91,11 @@ export const AiBuyerPage: React.FC<AiBuyerPageProps> = ({ currentMerchant }) => 
 
     try {
       const response = await buyerService.chat(currentMerchant.id, text);
+
+      if (response.provider_used) {
+        setActiveProvider(`Engine: ${response.provider_used}`);
+      }
+      setIsFallback(Boolean(response.is_fallback_mode));
 
       const agentMsg: BuyerMessage = {
         id: `buyer-${Date.now()}`,
@@ -204,9 +211,13 @@ export const AiBuyerPage: React.FC<AiBuyerPageProps> = ({ currentMerchant }) => 
           </div>
           <span
             className="badge-tag"
-            style={{ background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.3)' }}
+            style={
+              isFallback
+                ? { background: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24', border: '1px solid rgba(245, 158, 11, 0.3)' }
+                : { background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.3)' }
+            }
           >
-            <Cpu size={13} /> LangGraph Agent
+            <Cpu size={13} /> {isFallback ? 'AI Mode: Fallback Engine' : activeProvider}
           </span>
         </div>
 

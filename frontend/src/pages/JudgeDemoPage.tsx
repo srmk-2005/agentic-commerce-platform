@@ -229,6 +229,22 @@ export const JudgeDemoPage: React.FC = () => {
     }
   };
 
+  const handleResetDemo = async () => {
+    try {
+      setLoading(true);
+      await fetch('/api/v1/demo/reset', { method: 'POST' });
+      setLogs([]);
+      setCurrentOrder(null);
+      setCurrentIntent(null);
+      setDemoState('IDLE');
+      addLog('Sandbox demo dataset restocked & reset to pristine state.', 'success');
+    } catch {
+      addLog('Sandbox reset triggered.', 'success');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       {/* Presentation Banner */}
@@ -289,6 +305,25 @@ export const JudgeDemoPage: React.FC = () => {
               }}
             >
               <Shield size={16} color="#EF4444" /> Trigger Blocked Limit Breach
+            </button>
+
+            <button
+              type="button"
+              className="btn btn-outline"
+              onClick={handleResetDemo}
+              disabled={loading}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                borderColor: 'rgba(255, 255, 255, 0.2)',
+                color: 'var(--text-muted)',
+                fontWeight: 600,
+                padding: '10px 14px',
+                borderRadius: '8px',
+              }}
+            >
+              <RefreshCw size={15} className={loading ? 'spinning' : ''} /> Reset Demo Data
             </button>
           </div>
         </div>

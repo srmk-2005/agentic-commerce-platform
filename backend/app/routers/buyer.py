@@ -80,6 +80,8 @@ def buyer_chat_endpoint(
         order_created=final_state.get("order_response"),
         payment_intent=payment_intent_obj,
         execution_steps=final_state.get("execution_steps", []),
+        provider_used=final_state.get("used_llm_provider", "Gemini / Groq"),
+        is_fallback_mode=final_state.get("is_fallback_mode", False),
     )
 
 

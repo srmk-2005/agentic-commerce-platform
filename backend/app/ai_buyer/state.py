@@ -31,3 +31,5 @@ class BuyerState(TypedDict, total=False):
     selection_reasoning: str
     execution_steps: List[str]
     final_response: str
+    used_llm_provider: Optional[str]
+    is_fallback_mode: Optional[bool]

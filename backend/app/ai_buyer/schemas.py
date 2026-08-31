@@ -29,6 +29,8 @@ class BuyerChatResponse(BaseModel):
     order_created: Optional[Dict[str, Any]] = None
     payment_intent: Optional[PaymentIntentResponse] = None
     execution_steps: List[str] = Field(default_factory=list)
+    provider_used: Optional[str] = None
+    is_fallback_mode: bool = False
 
 
 class BuyerSimulationRequest(BaseModel):

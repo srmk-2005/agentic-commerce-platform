@@ -11,6 +11,11 @@ router = APIRouter(prefix="/audit", tags=["Audit Logs"])
 
 
 @router.get(
+    "",
+    response_model=List[AuditLogResponse],
+    summary="Get chronological audit logs for a merchant",
+)
+@router.get(
     "/logs",
     response_model=List[AuditLogResponse],
     summary="Get chronological audit logs for a merchant",

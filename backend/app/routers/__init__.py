@@ -8,6 +8,7 @@ from app.routers.buyer import router as buyer_router
 from app.routers.campaigns import router as campaigns_router
 from app.routers.commerce import router as commerce_router
 from app.routers.customers import router as customers_router
+from app.routers.demo import router as demo_router
 from app.routers.growth import router as growth_router
 from app.routers.merchants import router as merchants_router
 from app.routers.offers import router as offers_router
@@ -31,4 +32,5 @@ __all__ = [
     "ai_payments_router",
     "payments_router",
     "agent_commerce_router",
+    "demo_router",
 ]

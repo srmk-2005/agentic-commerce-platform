@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Bot, Send, Sparkles, RefreshCw, Cpu } from 'lucide-react';
 import { ActionProposal, Merchant, Opportunity } from '../types';
 import { agentService } from '../services/agentService';
+import { growthService } from '../services/growthService';
 import { OpportunityCard } from '../components/OpportunityCard';
 import { OpportunityDetailsModal } from '../components/OpportunityDetailsModal';
 import { ActionProposalCard } from '../components/ActionProposalCard';
@@ -22,11 +23,11 @@ interface ChatMessage {
 }
 
 const QUICK_PROMPTS = [
-  'How can I increase my sales?',
   'Create a bundle for Running Shoes and Running Socks with 10% discount.',
   'Create a campaign for my slow-moving inventory.',
   'What products are commonly bought together?',
-  'Find me an upsell opportunity.',
+  'Find me an upsell opportunity for running shoes.',
+  'How can I increase my store revenue this week?',
 ];
 
 export const AiAssistantPage: React.FC<AiAssistantPageProps> = ({ currentMerchant }) => {
@@ -36,57 +37,119 @@ export const AiAssistantPage: React.FC<AiAssistantPageProps> = ({ currentMerchan
   const [activeProvider, setActiveProvider] = useState<string>('Initializing Agent...');
   const [isFallback, setIsFallback] = useState(false);
   const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
+  const [isProposingOpportunity, setIsProposingOpportunity] = useState<string | null>(null);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
 
+  const loadAnalysis = async (userPrompt?: string) => {
+    if (!currentMerchant) return;
+    try {
+      setLoading(true);
+      const analysis = await agentService.analyzeStore(
+        currentMerchant.id,
+        userPrompt || 'Analyze catalog data and order patterns for revenue growth opportunities'
+      );
+
+      setActiveProvider(analysis.provider_used);
+      setIsFallback(analysis.is_fallback_mode);
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `init-${Date.now()}`,
+          sender: 'assistant',
+          text: analysis.summary,
+          opportunities: analysis.opportunities,
+          proposals: analysis.proposals || [],
+          provider: analysis.provider_used,
+          isFallback: analysis.is_fallback_mode,
+          timestamp: new Date(),
+        },
+      ]);
+    } catch (err: any) {
+      console.error('Analysis failed:', err);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `init-err-${Date.now()}`,
+          sender: 'assistant',
+          text: 'AI Agent is ready. Ask me any question about your store revenue, product affinities, or click "Propose Campaign" on any suggestion card below!',
+          timestamp: new Date(),
+        },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!currentMerchant) return;
-
-    // Load initial proactive analysis
-    const loadInitialAnalysis = async () => {
-      try {
-        setLoading(true);
-        const analysis = await agentService.analyzeStore(
-          currentMerchant.id,
-          'Initial catalog and order patterns analysis'
-        );
-
-        setActiveProvider(analysis.provider_used);
-        setIsFallback(analysis.is_fallback_mode);
-
-        setMessages([
-          {
-            id: 'init-1',
-            sender: 'assistant',
-            text: analysis.summary,
-            opportunities: analysis.opportunities,
-            proposals: analysis.proposals || [],
-            provider: analysis.provider_used,
-            isFallback: analysis.is_fallback_mode,
-            timestamp: new Date(),
-          },
-        ]);
-      } catch (err: any) {
-        console.error('Initial analysis failed:', err);
-        setMessages([
-          {
-            id: 'init-err',
-            sender: 'assistant',
-            text: 'AI Agent is ready. Ask me any question about your store revenue, product affinities, or ask me to propose a promotion campaign!',
-            timestamp: new Date(),
-          },
-        ]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadInitialAnalysis();
+    setMessages([]);
+    loadAnalysis();
   }, [currentMerchant]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
+
+  const handleProposeOpportunity = async (
+    opportunity: Opportunity,
+    discountValue: number = 10,
+    durationDays: number = 7
+  ) => {
+    if (!currentMerchant) return;
+    try {
+      setIsProposingOpportunity(opportunity.id);
+      const targetIds = [
+        opportunity.primary_product_id,
+        ...(opportunity.recommended_product_ids || []),
+      ].filter(Boolean) as number[];
+
+      const actionType =
+        opportunity.type === 'BUNDLE'
+          ? 'CREATE_BUNDLE'
+          : opportunity.type === 'SLOW_MOVING_PRODUCT'
+          ? 'SLOW_MOVING_PROMOTION'
+          : 'CREATE_CAMPAIGN';
+
+      const newProposal = await growthService.proposeAction({
+        merchant_id: currentMerchant.id,
+        action_type: actionType,
+        opportunity_id: opportunity.id,
+        title: opportunity.title,
+        description:
+          opportunity.description ||
+          `AI-generated growth action based on recommendation: ${opportunity.title}`,
+        campaign_type: opportunity.type,
+        target_product_ids:
+          targetIds.length > 0 ? targetIds : [opportunity.primary_product_id],
+        primary_product_id: opportunity.primary_product_id,
+        recommended_product_ids: opportunity.recommended_product_ids,
+        discount_type: 'PERCENTAGE',
+        discount_value: discountValue,
+        campaign_duration_days: durationDays,
+        expected_benefit: `Estimated gross revenue upside of ₹${opportunity.estimated_revenue_impact.toLocaleString()}`,
+        reasoning: `${opportunity.fact_statement} ${opportunity.ai_interpretation}`,
+      });
+
+      // Append confirmation message with proposal card to chat
+      const proposalMsg: ChatMessage = {
+        id: `prop-${Date.now()}`,
+        sender: 'assistant',
+        text: `⚡ I have created a structured **Action Proposal** for **${opportunity.title}** (${discountValue}% discount for ${durationDays} days) and submitted it to your **Merchant Approvals Queue**.\n\n🛡️ **Governance Status**: Placed in **PENDING APPROVAL** status. Click below to review and authorize it in Approvals.`,
+        proposals: [newProposal],
+        timestamp: new Date(),
+      };
+
+      setMessages((prev) => [...prev, proposalMsg]);
+      setSelectedOpportunity(null);
+    } catch (err: any) {
+      console.error('Failed to propose action:', err);
+      alert(`Could not create action proposal: ${err?.message || 'Policy violation'}`);
+    } finally {
+      setIsProposingOpportunity(null);
+    }
+  };
 
   const handleSendMessage = async (textToSend?: string) => {
     const text = (textToSend || inputMessage).trim();
@@ -161,6 +224,17 @@ export const AiAssistantPage: React.FC<AiAssistantPageProps> = ({ currentMerchan
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={() => loadAnalysis('Fresh store re-analysis')}
+            disabled={loading}
+            style={{ gap: '6px', fontSize: '0.8rem' }}
+          >
+            <RefreshCw size={13} className={loading ? 'spinning' : ''} />
+            Re-Analyze Catalog
+          </button>
+
           <span
             className="badge-tag"
             style={
@@ -170,7 +244,7 @@ export const AiAssistantPage: React.FC<AiAssistantPageProps> = ({ currentMerchan
             }
           >
             <Cpu size={14} />
-            {isFallback ? 'AI Mode: Demo / Fallback' : `Engine: ${activeProvider}`}
+            {isFallback ? 'AI Mode: Fallback Engine' : `Engine: ${activeProvider}`}
           </span>
         </div>
       </div>
@@ -233,7 +307,7 @@ export const AiAssistantPage: React.FC<AiAssistantPageProps> = ({ currentMerchan
               </div>
             )}
 
-            {/* Render Attached Opportunities (Phase 2) */}
+            {/* Render Attached Opportunities with Direct Action Triggers */}
             {msg.opportunities && msg.opportunities.length > 0 && (
               <div
                 style={{
@@ -249,6 +323,8 @@ export const AiAssistantPage: React.FC<AiAssistantPageProps> = ({ currentMerchan
                     key={opp.id}
                     opportunity={opp}
                     onReview={(o) => setSelectedOpportunity(o)}
+                    onProposeAction={(o) => handleProposeOpportunity(o, 10, 7)}
+                    isProposing={isProposingOpportunity === opp.id}
                   />
                 ))}
               </div>
@@ -321,11 +397,13 @@ export const AiAssistantPage: React.FC<AiAssistantPageProps> = ({ currentMerchan
         </button>
       </form>
 
-      {/* Opportunity Details Review Modal */}
+      {/* Opportunity Details Review Modal with Direct Proposal Action */}
       <OpportunityDetailsModal
         isOpen={!!selectedOpportunity}
         onClose={() => setSelectedOpportunity(null)}
         opportunity={selectedOpportunity}
+        onProposeAction={handleProposeOpportunity}
+        isProposing={!!isProposingOpportunity}
       />
     </div>
   );

@@ -260,6 +260,8 @@ Frontend UI will be live at `http://localhost:5173`.
 
 | Category | Method | Endpoint | Description |
 | :--- | :--- | :--- | :--- |
+| **System** | `GET` | `/api/v1/health` | Canonical System Health Check & service statuses |
+| **Demo Control** | `POST` | `/api/v1/demo/reset` | Pristine demo dataset and inventory restock reset |
 | **Agent Commerce** | `POST` | `/api/v1/agent-commerce/sessions` | Create stateful agent session with trace timeline |
 | **Agent Commerce** | `GET` | `/api/v1/agent-commerce/sessions/{id}` | Fetch session status & active state |
 | **Agent Commerce** | `GET` | `/api/v1/agent-commerce/sessions/{id}/timeline` | Detailed chronological trace event stream |
@@ -273,6 +275,7 @@ Frontend UI will be live at `http://localhost:5173`.
 | **AI Payments** | `POST` | `/api/v1/ai/payments/{id}/reject` | Explicit merchant rejection of payment proposal |
 | **Payments** | `POST` | `/api/v1/payments/verify` | Verify HMAC-SHA256 signature and mark order PAID |
 | **Payments** | `POST` | `/api/v1/payments/simulate-failure` | Graceful test failure recovery without false PAID |
+| **Payments** | `POST` | `/api/v1/payments/webhook` | Verified asynchronous webhook listener |
 | **Payments** | `GET` | `/api/v1/payments` | List transaction ledger for a merchant |
 | **Payments** | `GET` | `/api/v1/payments/{id}/detail` | Full explainable decision chain & audit events |
 | **AI Buyer** | `POST` | `/api/v1/buyer/chat` | Conversational external AI Buyer simulation |
@@ -303,14 +306,16 @@ cd backend
 
 ## 10. Testing & Verification Suite
 
-### Automated PyTest Suite (101 Tests - 100% Pass Rate)
+### Automated PyTest Suite (106 Tests - 100% Pass Rate)
 Run the full automated test suite:
 ```bash
 cd backend
 .\venv\Scripts\pytest.exe -v
 ```
 
-All 101 tests across all phases pass cleanly:
+All 106 tests across all 7 phases pass cleanly:
+- `tests/test_phase7_integration.py` (Full end-to-end commerce lifecycle)
+- `tests/test_phase7_hardening.py` (Health check, state machines, demo reset, webhook security)
 - `tests/test_phase6_sessions.py` (Session creation, state machine, TTL expiration)
 - `tests/test_phase6_protocol.py` (Protocol validation, versioning, error envelopes)
 - `tests/test_phase6_discovery.py` (Standardized contracts & capability negotiation)

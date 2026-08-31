@@ -67,9 +67,11 @@ class PaymentService:
         if order.merchant_id != merchant_id:
             raise OrderNotPayableException(f"Order #{order_id} does not belong to merchant #{merchant_id}.")
 
-        # 2. Check if already paid
+        # 2. Check if already paid or cancelled
         if order.status == OrderStatus.PAID or order.payment_status == "PAID":
             raise DuplicatePaymentException(f"Order #{order_id} has already been paid in full.")
+        if order.status == OrderStatus.CANCELLED:
+            raise OrderNotPayableException(f"Order #{order_id} is cancelled and cannot accept payments.")
 
         # 3. Idempotency Check
         if idempotency_key:

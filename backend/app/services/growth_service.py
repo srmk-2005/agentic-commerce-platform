@@ -303,10 +303,22 @@ class GrowthService:
         elif camp_type_enum == CampaignType.SLOW_MOVING_PRODUCT:
             offer_type_enum = OfferType.PRODUCT_DISCOUNT
 
+        # Resolve target product ID for Offer
+        # For Cross-Sell and Upsell, prioritize the recommended add-on item if specified.
+        # For Bundles, Slow-Moving Promotions, and General Campaigns, prioritize the primary target product.
+        if camp_type_enum in (CampaignType.CROSS_SELL, CampaignType.UPSELL) and meta.get("recommended_product_ids"):
+            offer_product_id = meta["recommended_product_ids"][0]
+        else:
+            offer_product_id = (
+                meta.get("primary_product_id")
+                or (meta.get("target_product_ids", [None])[0] if meta.get("target_product_ids") else None)
+                or (meta.get("recommended_product_ids", [None])[0] if meta.get("recommended_product_ids") else None)
+            )
+
         offer = Offer(
             merchant_id=approval.merchant_id,
             campaign_id=campaign.id,
-            product_id=meta.get("recommended_product_ids", [None])[0] if meta.get("recommended_product_ids") else None,
+            product_id=offer_product_id,
             offer_type=offer_type_enum,
             discount_type=disc_type_enum,
             discount_value=float(meta.get("discount_value", 10.0)),

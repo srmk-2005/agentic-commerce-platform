@@ -1,13 +1,20 @@
 import React from 'react';
 import { Opportunity } from '../types';
-import { ArrowUpRight, TrendingUp, Sparkles, AlertCircle, ShoppingCart } from 'lucide-react';
+import { ArrowUpRight, TrendingUp, Sparkles, AlertCircle, ShoppingCart, Zap, RefreshCw } from 'lucide-react';
 
 interface OpportunityCardProps {
   opportunity: Opportunity;
   onReview: (opportunity: Opportunity) => void;
+  onProposeAction?: (opportunity: Opportunity) => void;
+  isProposing?: boolean;
 }
 
-export const OpportunityCard: React.FC<OpportunityCardProps> = ({ opportunity, onReview }) => {
+export const OpportunityCard: React.FC<OpportunityCardProps> = ({
+  opportunity,
+  onReview,
+  onProposeAction,
+  isProposing = false,
+}) => {
   const getTypeBadge = (type: string) => {
     switch (type) {
       case 'CROSS_SELL':
@@ -174,12 +181,14 @@ export const OpportunityCard: React.FC<OpportunityCardProps> = ({ opportunity, o
         </div>
       </div>
 
-      {/* Footer: Revenue Impact & Review Button */}
+      {/* Footer: Revenue Impact & Action Buttons */}
       <div
         style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '12px',
           marginTop: 'auto',
           paddingTop: '10px',
         }}
@@ -193,14 +202,40 @@ export const OpportunityCard: React.FC<OpportunityCardProps> = ({ opportunity, o
           </div>
         </div>
 
-        <button
-          type="button"
-          className="btn btn-secondary btn-sm"
-          onClick={() => onReview(opportunity)}
-          style={{ gap: '4px' }}
-        >
-          Review Opportunity <ArrowUpRight size={14} />
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={() => onReview(opportunity)}
+            style={{ gap: '4px' }}
+          >
+            Review <ArrowUpRight size={14} />
+          </button>
+
+          {onProposeAction && (
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={() => onProposeAction(opportunity)}
+              disabled={isProposing}
+              style={{
+                gap: '6px',
+                background: 'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)',
+                fontWeight: 700,
+              }}
+            >
+              {isProposing ? (
+                <>
+                  <RefreshCw size={13} className="spinning" /> Proposing...
+                </>
+              ) : (
+                <>
+                  <Zap size={13} fill="#FCD34D" color="#FCD34D" /> Propose Campaign
+                </>
+              )}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

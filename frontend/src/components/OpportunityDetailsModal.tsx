@@ -1,20 +1,33 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Modal } from './Modal';
 import { Opportunity } from '../types';
-import { ShieldCheck } from 'lucide-react';
+import { ShieldCheck, Zap, RefreshCw, Sparkles } from 'lucide-react';
 
 interface OpportunityDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
   opportunity: Opportunity | null;
+  onProposeAction?: (opportunity: Opportunity, discountValue: number, durationDays: number) => void;
+  isProposing?: boolean;
 }
 
 export const OpportunityDetailsModal: React.FC<OpportunityDetailsModalProps> = ({
   isOpen,
   onClose,
   opportunity,
+  onProposeAction,
+  isProposing = false,
 }) => {
+  const [discountValue, setDiscountValue] = useState<number>(10);
+  const [durationDays, setDurationDays] = useState<number>(7);
+
   if (!opportunity) return null;
+
+  const handlePropose = () => {
+    if (onProposeAction) {
+      onProposeAction(opportunity, discountValue, durationDays);
+    }
+  };
 
   return (
     <Modal
@@ -152,38 +165,64 @@ export const OpportunityDetailsModal: React.FC<OpportunityDetailsModalProps> = (
           </div>
         </div>
 
-        {/* Supporting Metrics Table */}
-        {Object.keys(opportunity.supporting_metrics).length > 0 && (
-          <div>
-            <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '8px' }}>
-              Supporting Metrics
+        {/* Interactive Campaign Customization Parameters */}
+        <div
+          style={{
+            padding: '16px',
+            background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(16, 185, 129, 0.05) 100%)',
+            border: '1px solid rgba(99, 102, 241, 0.25)',
+            borderRadius: '10px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '14px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Sparkles size={16} color="#818CF8" />
+            <h5 style={{ fontSize: '0.925rem', fontWeight: 700, color: 'var(--text-main)' }}>
+              Configure Action Proposal Terms
+            </h5>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+            <div>
+              <label style={{ fontSize: '0.775rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                Discount Percentage (Max: 20%)
+              </label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <input
+                  type="number"
+                  min="1"
+                  max="20"
+                  value={discountValue}
+                  onChange={(e) => setDiscountValue(Math.min(20, Math.max(1, Number(e.target.value) || 10)))}
+                  className="form-input"
+                  style={{ width: '100px' }}
+                />
+                <span style={{ fontSize: '0.85rem', color: 'var(--text-main)', fontWeight: 600 }}>% OFF</span>
+              </div>
             </div>
-            <div className="table-container">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Metric</th>
-                    <th>Observed Value</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {Object.entries(opportunity.supporting_metrics).map(([key, val]) => (
-                    <tr key={key}>
-                      <td style={{ textTransform: 'capitalize' }}>{key.replace(/_/g, ' ')}</td>
-                      <td className="mono cell-highlight">
-                        {typeof val === 'number'
-                          ? val % 1 !== 0
-                            ? val.toFixed(2)
-                            : val.toString()
-                          : String(val)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+
+            <div>
+              <label style={{ fontSize: '0.775rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                Campaign Duration
+              </label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <select
+                  value={durationDays}
+                  onChange={(e) => setDurationDays(Number(e.target.value))}
+                  className="form-input"
+                  style={{ width: '140px' }}
+                >
+                  <option value={3}>3 Days (Flash)</option>
+                  <option value={7}>7 Days (Standard)</option>
+                  <option value={14}>14 Days (Bi-weekly)</option>
+                  <option value={30}>30 Days (Monthly)</option>
+                </select>
+              </div>
             </div>
           </div>
-        )}
+        </div>
 
         {/* Safety Boundary Notice */}
         <div
@@ -192,24 +231,49 @@ export const OpportunityDetailsModal: React.FC<OpportunityDetailsModalProps> = (
             alignItems: 'center',
             gap: '10px',
             padding: '12px 16px',
-            background: 'rgba(245, 158, 11, 0.08)',
-            border: '1px solid rgba(245, 158, 11, 0.25)',
+            background: 'rgba(16, 185, 129, 0.08)',
+            border: '1px solid rgba(16, 185, 129, 0.25)',
             borderRadius: '8px',
             fontSize: '0.825rem',
-            color: '#fcd34d',
+            color: '#6ee7b7',
           }}
         >
-          <ShieldCheck size={20} color="#F59E0B" style={{ flexShrink: 0 }} />
+          <ShieldCheck size={20} color="#10B981" style={{ flexShrink: 0 }} />
           <span>
-            <strong>Phase 2 Review Only:</strong> This recommendation requires merchant approval. Campaign execution workflows and automated buyer discounts will be activated in Phase 3.
+            <strong>Human-In-The-Loop Control:</strong> Submitting this action creates an Action Proposal in your <strong>Approvals Queue</strong>. No discounts or campaigns are published without your explicit review.
           </span>
         </div>
       </div>
 
-      <div className="modal-footer">
-        <button type="button" className="btn btn-secondary" onClick={onClose}>
+      <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isProposing}>
           Close Review
         </button>
+
+        {onProposeAction && (
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={handlePropose}
+            disabled={isProposing}
+            style={{
+              gap: '8px',
+              background: 'linear-gradient(135deg, #059669 0%, #10B981 100%)',
+              fontWeight: 800,
+              padding: '10px 20px',
+            }}
+          >
+            {isProposing ? (
+              <>
+                <RefreshCw size={16} className="spinning" /> Submitting Proposal...
+              </>
+            ) : (
+              <>
+                <Zap size={16} fill="#FCD34D" color="#FCD34D" /> Submit Action Proposal to Approvals
+              </>
+            )}
+          </button>
+        )}
       </div>
     </Modal>
   );
