@@ -17,6 +17,16 @@ class BuyerState(TypedDict, total=False):
     availability: Optional[str]
     order_id: Optional[int]
     order_response: Optional[Dict[str, Any]]
+    
+    # Phase 5: Payment Intent & Bounded Money Actions
+    payment_intent_id: Optional[int]
+    payment_amount: Optional[float]
+    payment_currency: Optional[str]
+    payment_risk: Optional[str]
+    payment_policy_result: Optional[Dict[str, Any]]
+    payment_intent_response: Optional[Dict[str, Any]]
+    payment_explainability: Optional[str]
+
     errors: List[str]
     selection_reasoning: str
     execution_steps: List[str]

@@ -14,6 +14,11 @@ import {
   History,
   Globe,
   ShoppingCart,
+  CreditCard,
+  Play,
+  Sliders,
+  Cpu,
+  Sparkles,
 } from 'lucide-react';
 import { Merchant } from '../types';
 import { merchantService } from '../services/merchantService';
@@ -59,6 +64,14 @@ export const Layout: React.FC<LayoutProps> = ({ currentMerchant, onSelectMerchan
     switch (location.pathname) {
       case '/dashboard':
         return 'Executive Overview';
+      case '/demo':
+        return '3-Minute Judge Demo Screen';
+      case '/agent-commerce':
+        return 'Agent-to-Agent Commerce Hub';
+      case '/agent-commerce/inspector':
+        return 'Protocol Inspector & Debugger';
+      case '/agent-commerce/readiness':
+        return 'AI Commerce Readiness Score';
       case '/ai-assistant':
         return 'Merchant AI Assistant';
       case '/ai-commerce':
@@ -75,9 +88,14 @@ export const Layout: React.FC<LayoutProps> = ({ currentMerchant, onSelectMerchan
         return 'Product Catalog & Inventory';
       case '/orders':
         return 'Orders & Transactions';
+      case '/transactions':
+        return 'Transaction Ledger & Payments';
       case '/customers':
         return 'Customer Directory';
       default:
+        if (location.pathname.startsWith('/payment-approval')) {
+          return 'Payment Approval Gate';
+        }
         return 'Merchant Dashboard';
     }
   };
@@ -105,6 +123,67 @@ export const Layout: React.FC<LayoutProps> = ({ currentMerchant, onSelectMerchan
             <LayoutDashboard size={18} />
             <span>Dashboard</span>
           </NavLink>
+
+          <div className="nav-heading" style={{ marginTop: '14px' }}>
+            Agent-to-Agent Protocol (Phase 6)
+          </div>
+
+          <NavLink
+            to="/demo"
+            className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+            style={({ isActive }) => ({
+              background: isActive
+                ? 'linear-gradient(135deg, rgba(5, 150, 105, 0.3) 0%, rgba(16, 185, 129, 0.2) 100%)'
+                : 'rgba(16, 185, 129, 0.08)',
+              borderColor: 'rgba(16, 185, 129, 0.3)',
+              color: '#34D399',
+            })}
+          >
+            <Play size={18} color="#34D399" />
+            <span style={{ fontWeight: 700 }}>Judge Demo (3-Min)</span>
+            <span
+              style={{
+                marginLeft: 'auto',
+                fontSize: '0.65rem',
+                fontWeight: 800,
+                padding: '2px 6px',
+                borderRadius: '8px',
+                background: 'rgba(52, 211, 153, 0.2)',
+                color: '#34d399',
+                border: '1px solid rgba(52, 211, 153, 0.35)',
+              }}
+            >
+              LIVE
+            </span>
+          </NavLink>
+
+          <NavLink
+            to="/agent-commerce"
+            className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+          >
+            <Cpu size={18} color="#818CF8" />
+            <span>Agent Commerce Hub</span>
+          </NavLink>
+
+          <NavLink
+            to="/agent-commerce/inspector"
+            className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+          >
+            <Sliders size={18} color="#38BDF8" />
+            <span>Protocol Inspector</span>
+          </NavLink>
+
+          <NavLink
+            to="/agent-commerce/readiness"
+            className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+          >
+            <Sparkles size={18} color="#F59E0B" />
+            <span>Commerce Readiness</span>
+          </NavLink>
+
+          <div className="nav-heading" style={{ marginTop: '14px' }}>
+            Merchant Intelligence
+          </div>
 
           <NavLink
             to="/ai-assistant"
@@ -190,6 +269,18 @@ export const Layout: React.FC<LayoutProps> = ({ currentMerchant, onSelectMerchan
           >
             <History size={18} color="#C084FC" />
             <span>Audit Trail</span>
+          </NavLink>
+
+          <div className="nav-heading" style={{ marginTop: '14px' }}>
+            Payments & Money (Phase 5)
+          </div>
+
+          <NavLink
+            to="/transactions"
+            className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+          >
+            <CreditCard size={18} color="#34D399" />
+            <span>Transactions</span>
           </NavLink>
 
           <div className="nav-heading" style={{ marginTop: '14px' }}>

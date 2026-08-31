@@ -5,7 +5,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.db.database import Base, engine
 from app.routers import (
+    agent_commerce_router,
     agent_router,
+    ai_payments_router,
     approvals_router,
     audit_router,
     buyer_router,
@@ -16,6 +18,7 @@ from app.routers import (
     merchants_router,
     offers_router,
     orders_router,
+    payments_router,
     products_router,
 )
 
@@ -66,6 +69,9 @@ app.include_router(offers_router, prefix=settings.API_V1_STR)
 app.include_router(audit_router, prefix=settings.API_V1_STR)
 app.include_router(commerce_router, prefix=settings.API_V1_STR)
 app.include_router(buyer_router, prefix=settings.API_V1_STR)
+app.include_router(ai_payments_router, prefix=settings.API_V1_STR)
+app.include_router(payments_router, prefix=settings.API_V1_STR)
+app.include_router(agent_commerce_router, prefix=settings.API_V1_STR)
 
 
 @app.get("/", include_in_schema=False)

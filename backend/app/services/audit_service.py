@@ -21,6 +21,8 @@ class AuditService:
         merchant_id: int,
         action: str,
         details: Optional[Dict[str, Any]] = None,
+        reason: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
         error: Optional[str] = None,
         db: Optional[Session] = None,
         actor_type: ActorType = ActorType.AI_AGENT,
@@ -33,13 +35,18 @@ class AuditService:
         Record an agent lifecycle event, approval, or campaign execution.
         Sanitizes sensitive keys and persists to database if DB session is available.
         """
+        merged_details = dict(details or {})
+        if metadata:
+            merged_details.update(metadata)
+        if reason:
+            merged_details["reason"] = reason
+
         sanitized_details = {}
-        if details:
-            for k, v in details.items():
-                if any(sec in k.lower() for sec in ["key", "secret", "password", "token", "auth"]):
-                    sanitized_details[k] = "[REDACTED]"
-                else:
-                    sanitized_details[k] = v
+        for k, v in merged_details.items():
+            if any(sec in str(k).lower() for sec in ["key", "secret", "password", "token", "auth"]):
+                sanitized_details[k] = "[REDACTED]"
+            else:
+                sanitized_details[k] = v
 
         entry = {
             "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),

@@ -1,5 +1,7 @@
 """API Routers package."""
 from app.routers.agent import router as agent_router
+from app.routers.agent_commerce import router as agent_commerce_router
+from app.routers.ai_payments import router as ai_payments_router
 from app.routers.approvals import router as approvals_router
 from app.routers.audit import router as audit_router
 from app.routers.buyer import router as buyer_router
@@ -10,6 +12,7 @@ from app.routers.growth import router as growth_router
 from app.routers.merchants import router as merchants_router
 from app.routers.offers import router as offers_router
 from app.routers.orders import router as orders_router
+from app.routers.payments import router as payments_router
 from app.routers.products import router as products_router
 
 __all__ = [
@@ -25,4 +28,7 @@ __all__ = [
     "audit_router",
     "commerce_router",
     "buyer_router",
+    "ai_payments_router",
+    "payments_router",
+    "agent_commerce_router",
 ]

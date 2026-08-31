@@ -1,4 +1,4 @@
-"""Router for Simulated AI Buyer Agent interactions."""
+"""Router for Simulated AI Buyer Agent interactions (Phase 5)."""
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.ai_buyer.agent import create_buyer_agent_graph
@@ -11,6 +11,8 @@ from app.ai_buyer.schemas import (
 )
 from app.ai_buyer.tools import AICommerceClient
 from app.db.database import get_db
+from app.payments.payment_service import PaymentService
+from app.payments.schemas import PaymentIntentResponse
 
 router = APIRouter(prefix="/buyer", tags=["AI Buyer Simulator"])
 
@@ -19,7 +21,7 @@ router = APIRouter(prefix="/buyer", tags=["AI Buyer Simulator"])
     "/chat",
     response_model=BuyerChatResponse,
     summary="Chat with Simulated AI Buyer",
-    description="Simulate external AI Buyer discovering the merchant, querying catalog, evaluating candidates, and placing orders.",
+    description="Simulate external AI Buyer discovering the merchant, querying catalog, evaluating candidates, creating orders, and proposing payment intents.",
 )
 def buyer_chat_endpoint(
     req: BuyerChatRequest,
@@ -66,11 +68,17 @@ def buyer_chat_endpoint(
             reason=sp.get("reason"),
         )
 
+    payment_intent_obj = None
+    if final_state.get("payment_intent_response"):
+        pir = final_state["payment_intent_response"]
+        payment_intent_obj = PaymentIntentResponse.model_validate(pir)
+
     return BuyerChatResponse(
         response=final_state.get("final_response", ""),
         candidates=candidate_objs,
         selected_product=selected_obj,
         order_created=final_state.get("order_response"),
+        payment_intent=payment_intent_obj,
         execution_steps=final_state.get("execution_steps", []),
     )
 
@@ -78,14 +86,14 @@ def buyer_chat_endpoint(
 @router.post(
     "/simulate-order",
     response_model=BuyerSimulationResponse,
-    summary="Simulate Direct AI Buyer Checkout",
-    description="Execute an end-to-end automated product order from the AI Buyer interface.",
+    summary="Simulate Direct AI Buyer Checkout with Payment Intent",
+    description="Execute an end-to-end automated product order and propose a Razorpay Test Mode payment intent.",
 )
 def simulate_buyer_order_endpoint(
     req: BuyerSimulationRequest,
     db: Session = Depends(get_db),
 ):
-    """Direct simulated order placement."""
+    """Direct simulated order placement and payment proposal."""
     client = AICommerceClient(db_session=db)
 
     try:
@@ -107,16 +115,26 @@ def simulate_buyer_order_endpoint(
             idempotency_key=req.idempotency_key,
         )
 
+        # 4. Propose Payment Intent
+        intent_resp = PaymentService.propose_payment(
+            db=db,
+            order_id=order_data["order_id"],
+            merchant_id=req.merchant_id,
+            idempotency_key=f"sim-pay-{order_data['order_id']}",
+        )
+
         explainability = (
             f"AI Buyer successfully placed order #{order_data['order_id']} for {req.quantity}x '{prod['name']}' "
-            f"at ₹{order_data['total_amount']:,.2f}. Inventory was deducted from {prod['stock_quantity']} to "
-            f"{prod['stock_quantity'] - req.quantity}. Payment is deferred to Phase 5."
+            f"at ₹{order_data['total_amount']:,.2f}. Payment Intent #{intent_resp.id} proposed "
+            f"(Risk: {intent_resp.risk_level}, Status: {intent_resp.status}). {intent_resp.explainability}"
         )
 
         return BuyerSimulationResponse(
             success=True,
             order=order_data,
+            payment_intent=intent_resp,
             explainability=explainability,
+            payment_note="Razorpay Test Mode Payment Intent created. Awaiting human/merchant approval.",
         )
     except HTTPException as he:
         return BuyerSimulationResponse(

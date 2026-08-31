@@ -5,9 +5,15 @@ import { DashboardPage } from './pages/DashboardPage';
 import { AiAssistantPage } from './pages/AiAssistantPage';
 import { AiCommercePage } from './pages/AiCommercePage';
 import { AiBuyerPage } from './pages/AiBuyerPage';
+import { AgentCommerceDashboardPage } from './pages/AgentCommerceDashboardPage';
+import { ProtocolInspectorPage } from './pages/ProtocolInspectorPage';
+import { CommerceReadinessPage } from './pages/CommerceReadinessPage';
+import { JudgeDemoPage } from './pages/JudgeDemoPage';
 import { ApprovalsPage } from './pages/ApprovalsPage';
 import { CampaignsPage } from './pages/CampaignsPage';
 import { AuditPage } from './pages/AuditPage';
+import { PaymentApprovalPage } from './pages/PaymentApprovalPage';
+import { TransactionsPage } from './pages/TransactionsPage';
 import { ProductsPage } from './pages/ProductsPage';
 import { OrdersPage } from './pages/OrdersPage';
 import { CustomersPage } from './pages/CustomersPage';
@@ -33,6 +39,22 @@ export const App: React.FC = () => {
             element={<DashboardPage currentMerchant={currentMerchant} />}
           />
           <Route
+            path="/demo"
+            element={<JudgeDemoPage />}
+          />
+          <Route
+            path="/agent-commerce"
+            element={<AgentCommerceDashboardPage currentMerchant={currentMerchant} />}
+          />
+          <Route
+            path="/agent-commerce/inspector"
+            element={<ProtocolInspectorPage />}
+          />
+          <Route
+            path="/agent-commerce/readiness"
+            element={<CommerceReadinessPage currentMerchant={currentMerchant} />}
+          />
+          <Route
             path="/ai-assistant"
             element={<AiAssistantPage currentMerchant={currentMerchant} />}
           />
@@ -47,6 +69,14 @@ export const App: React.FC = () => {
           <Route
             path="/approvals"
             element={<ApprovalsPage currentMerchant={currentMerchant} />}
+          />
+          <Route
+            path="/payment-approval/:id"
+            element={<PaymentApprovalPage />}
+          />
+          <Route
+            path="/transactions"
+            element={<TransactionsPage />}
           />
           <Route
             path="/campaigns"

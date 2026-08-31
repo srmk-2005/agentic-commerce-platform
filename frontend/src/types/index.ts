@@ -138,12 +138,14 @@ export interface BuyerChatResponse {
   candidates: BuyerProductOption[];
   selected_product?: BuyerProductOption | null;
   order_created?: AIOrderResponse | null;
+  payment_intent?: PaymentIntent | null;
   execution_steps: string[];
 }
 
 export interface BuyerSimulationResponse {
   success: boolean;
   order?: AIOrderResponse | null;
+  payment_intent?: PaymentIntent | null;
   error_message?: string | null;
   explainability: string;
   payment_note: string;
@@ -429,3 +431,222 @@ export interface Order {
   customer?: Customer;
   merchant?: Merchant;
 }
+
+// --- Phase 5: Razorpay Test Mode & Bounded Money Actions Types ---
+
+export type PaymentStatus =
+  | 'CREATED'
+  | 'PENDING'
+  | 'AUTHORIZED'
+  | 'CAPTURED'
+  | 'FAILED'
+  | 'CANCELLED'
+  | 'REFUNDED';
+
+export type PaymentIntentStatus =
+  | 'PROPOSED'
+  | 'PENDING_APPROVAL'
+  | 'APPROVED'
+  | 'REJECTED'
+  | 'EXECUTING'
+  | 'COMPLETED'
+  | 'FAILED';
+
+export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'BLOCKED';
+
+export type MoneyActionType = 'CREATE_PAYMENT' | 'CAPTURE_PAYMENT' | 'REFUND_PAYMENT';
+
+export interface PaymentPolicyCheck {
+  is_allowed: boolean;
+  amount: number;
+  currency: string;
+  max_transaction_limit: number;
+  daily_limit: number;
+  today_spent: number;
+  remaining_daily_limit: number;
+  risk_level: string;
+  requires_approval: boolean;
+  reasons: string[];
+  explainability: string;
+}
+
+export interface PaymentIntent {
+  id: number;
+  order_id: number;
+  merchant_id: number;
+  amount: number;
+  currency: string;
+  status: PaymentIntentStatus;
+  risk_level: RiskLevel;
+  reason: string;
+  requires_approval: boolean;
+  approved_by?: string | null;
+  approved_at?: string | null;
+  expires_at?: string | null;
+  idempotency_key?: string | null;
+  created_at: string;
+  explainability?: string | null;
+  policy_check?: PaymentPolicyCheck | null;
+}
+
+export interface RazorpayOrder {
+  razorpay_order_id: string;
+  razorpay_key_id: string;
+  amount: number; // in paise
+  currency: string;
+  payment_intent_id: number;
+  order_id: number;
+  status: string;
+  is_test_mode: boolean;
+}
+
+export interface PaymentVerificationRequest {
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+  payment_intent_id: number;
+}
+
+export interface PaymentVerificationResponse {
+  success: boolean;
+  payment_id: number;
+  order_id: number;
+  status: string;
+  amount: number;
+  currency: string;
+  message: string;
+  verified_at: string;
+}
+
+export interface Payment {
+  id: number;
+  order_id: number;
+  merchant_id: number;
+  payment_intent_id?: number | null;
+  razorpay_order_id?: string | null;
+  razorpay_payment_id?: string | null;
+  amount: number;
+  currency: string;
+  status: PaymentStatus;
+  payment_method: string;
+  failure_reason?: string | null;
+  created_at: string;
+  verified_at?: string | null;
+}
+
+export interface TransactionDetail {
+  payment: Payment;
+  order: Record<string, any>;
+  payment_intent?: PaymentIntent | null;
+  decision_chain: string[];
+  audit_events: Array<Record<string, any>>;
+}
+
+// --- Phase 6: Agent Commerce Protocol & Session Types ---
+
+export type ProtocolAction =
+  | 'DISCOVER'
+  | 'SEARCH'
+  | 'GET_PRODUCT'
+  | 'CHECK_INVENTORY'
+  | 'CREATE_ORDER'
+  | 'PROPOSE_PAYMENT'
+  | 'GET_PAYMENT_STATUS';
+
+export interface AgentSenderRecipient {
+  type: 'AI_BUYER' | 'MERCHANT' | 'SYSTEM';
+  id: string;
+}
+
+export interface AgentMessage {
+  protocol_version?: string;
+  message_id: string;
+  session_id: string;
+  trace_id?: string | null;
+  sender: AgentSenderRecipient;
+  recipient: AgentSenderRecipient;
+  action: ProtocolAction;
+  payload?: Record<string, any>;
+}
+
+export interface AgentError {
+  code: string;
+  message: string;
+  details?: Record<string, any> | null;
+}
+
+export interface AgentResponse {
+  success: boolean;
+  protocol_version: string;
+  message_id: string;
+  session_id: string;
+  trace_id: string;
+  action: string;
+  data?: Record<string, any> | null;
+  error?: AgentError | null;
+}
+
+export interface AgentCommerceContract {
+  protocol_version: string;
+  merchant_id: number;
+  merchant_name: string;
+  currency: string;
+  capabilities: Record<string, boolean>;
+  endpoints: Record<string, string>;
+  payment_policy: Record<string, any>;
+  supported_actions: string[];
+}
+
+export interface SessionResponse {
+  session_id: string;
+  trace_id: string;
+  merchant_id: number;
+  buyer_id: string;
+  status: string;
+  created_at: string;
+  expires_at?: string | null;
+}
+
+export interface SessionTimelineEvent {
+  timestamp: string;
+  action: string;
+  actor: string;
+  status: string;
+  details: Record<string, any>;
+}
+
+export interface SessionTimelineResponse {
+  session_id: string;
+  trace_id: string;
+  status: string;
+  merchant_id: number;
+  buyer_id: string;
+  timeline: SessionTimelineEvent[];
+}
+
+export interface CommerceReadinessScoreItem {
+  category: string;
+  name: string;
+  weight: number;
+  passed: boolean;
+  details: string;
+}
+
+export interface CommerceReadinessResponse {
+  merchant_id: number;
+  merchant_name: string;
+  readiness_score: number;
+  is_ready: boolean;
+  checklist: CommerceReadinessScoreItem[];
+  recommendations: string[];
+}
+
+export interface AgentCommerceStats {
+  active_sessions: number;
+  orders_via_ai: number;
+  ai_revenue: number;
+  successful_payments: number;
+  blocked_transactions: number;
+  currency: string;
+}
+

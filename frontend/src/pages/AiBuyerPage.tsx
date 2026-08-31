@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { BuyerProductOption, Merchant, AIOrderResponse } from '../types';
+import { Link } from 'react-router-dom';
+import { BuyerProductOption, Merchant, AIOrderResponse, PaymentIntent } from '../types';
 import { buyerService } from '../services/buyerService';
 import {
   Bot,
@@ -12,8 +13,10 @@ import {
   Cpu,
   ArrowRight,
   PackageCheck,
-  Clock,
   Layers,
+  Shield,
+  CreditCard,
+  Lock,
 } from 'lucide-react';
 
 interface AiBuyerPageProps {
@@ -27,6 +30,7 @@ interface BuyerMessage {
   candidates?: BuyerProductOption[];
   selectedProduct?: BuyerProductOption | null;
   orderCreated?: AIOrderResponse | null;
+  paymentIntent?: PaymentIntent | null;
   executionSteps?: string[];
   timestamp: Date;
 }
@@ -47,6 +51,7 @@ export const AiBuyerPage: React.FC<AiBuyerPageProps> = ({ currentMerchant }) => 
   const [orderQuantity, setOrderQuantity] = useState<number>(1);
   const [orderingLoading, setOrderingLoading] = useState(false);
   const [latestOrder, setLatestOrder] = useState<AIOrderResponse | null>(null);
+  const [latestPaymentIntent, setLatestPaymentIntent] = useState<PaymentIntent | null>(null);
   const [orderNotice, setOrderNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -92,6 +97,7 @@ export const AiBuyerPage: React.FC<AiBuyerPageProps> = ({ currentMerchant }) => 
         candidates: response.candidates,
         selectedProduct: response.selected_product,
         orderCreated: response.order_created,
+        paymentIntent: response.payment_intent,
         executionSteps: response.execution_steps,
         timestamp: new Date(),
       };
@@ -103,6 +109,9 @@ export const AiBuyerPage: React.FC<AiBuyerPageProps> = ({ currentMerchant }) => 
       }
       if (response.order_created) {
         setLatestOrder(response.order_created);
+      }
+      if (response.payment_intent) {
+        setLatestPaymentIntent(response.payment_intent);
       }
     } catch (err: any) {
       setMessages((prev) => [
@@ -135,6 +144,9 @@ export const AiBuyerPage: React.FC<AiBuyerPageProps> = ({ currentMerchant }) => 
 
       if (simRes.success && simRes.order) {
         setLatestOrder(simRes.order);
+        if (simRes.payment_intent) {
+          setLatestPaymentIntent(simRes.payment_intent);
+        }
         setOrderNotice({
           type: 'success',
           message: `Order #${simRes.order.order_id} created successfully for ₹${simRes.order.total_amount}.`,
@@ -146,8 +158,9 @@ export const AiBuyerPage: React.FC<AiBuyerPageProps> = ({ currentMerchant }) => 
           {
             id: `order-conf-${Date.now()}`,
             sender: 'buyer_agent',
-            text: `🎉 **Order #${simRes.order!.order_id} Placed!**\n\n${simRes.explainability}`,
+            text: `🎉 **Order #${simRes.order!.order_id} Placed & Payment Intent Proposed!**\n\n${simRes.explainability}`,
             orderCreated: simRes.order,
+            paymentIntent: simRes.payment_intent,
             timestamp: new Date(),
           },
         ]);
@@ -547,25 +560,85 @@ export const AiBuyerPage: React.FC<AiBuyerPageProps> = ({ currentMerchant }) => 
               </strong>
             </div>
 
-            {/* Payment Phase 4 Disclaimer */}
-            <div
-              style={{
-                marginTop: '6px',
-                padding: '10px 12px',
-                borderRadius: '6px',
-                background: 'rgba(245, 158, 11, 0.1)',
-                border: '1px solid rgba(245, 158, 11, 0.25)',
-                fontSize: '0.775rem',
-                color: '#fbbf24',
-              }}
-            >
-              <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <Clock size={12} /> Payment: NOT_AVAILABLE
+            {/* Phase 5: Gated Payment Intent & Razorpay Authorization Link */}
+            {latestPaymentIntent ? (
+              <div
+                style={{
+                  marginTop: '8px',
+                  padding: '12px',
+                  borderRadius: '10px',
+                  background: 'linear-gradient(135deg, rgba(6, 78, 59, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%)',
+                  border: '1px solid rgba(16, 185, 129, 0.4)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.8rem', color: '#34d399' }}>
+                    <Shield size={14} /> Gated Payment Proposal
+                  </div>
+                  <span
+                    style={{
+                      fontSize: '0.675rem',
+                      fontWeight: 700,
+                      padding: '2px 8px',
+                      borderRadius: '12px',
+                      background: 'rgba(245, 158, 11, 0.2)',
+                      color: '#fbbf24',
+                      border: '1px solid rgba(245, 158, 11, 0.3)',
+                    }}
+                  >
+                    Risk: {latestPaymentIntent.risk_level}
+                  </span>
+                </div>
+
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+                  {latestPaymentIntent.explainability || 'Payment is within bounded merchant limits and requires explicit approval.'}
+                </div>
+
+                <Link
+                  to={`/payment-approval/${latestPaymentIntent.id}`}
+                  className="btn btn-primary"
+                  style={{
+                    marginTop: '4px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    padding: '8px 12px',
+                    background: 'linear-gradient(135deg, #059669 0%, #10B981 100%)',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    textDecoration: 'none',
+                    borderRadius: '8px',
+                    color: '#ffffff',
+                  }}
+                >
+                  <Lock size={14} />
+                  Review & Authorize Payment (₹{latestPaymentIntent.amount.toLocaleString()}) →
+                </Link>
               </div>
-              <div style={{ marginTop: '2px', color: 'var(--text-muted)' }}>
-                Payment simulation with Razorpay test mode will be added in Phase 5.
+            ) : (
+              <div
+                style={{
+                  marginTop: '6px',
+                  padding: '10px 12px',
+                  borderRadius: '6px',
+                  background: 'rgba(56, 189, 248, 0.08)',
+                  border: '1px solid rgba(56, 189, 248, 0.2)',
+                  fontSize: '0.775rem',
+                  color: '#38bdf8',
+                }}
+              >
+                <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <CreditCard size={12} /> Razorpay Test Mode Ready
+                </div>
+                <div style={{ marginTop: '2px', color: 'var(--text-muted)' }}>
+                  Bounded payment intent will be generated automatically upon placing the order.
+                </div>
               </div>
-            </div>
+            )}
           </div>
         )}
       </div>

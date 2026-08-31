@@ -28,6 +28,9 @@ def format_ai_product(product: Product) -> AIProduct:
     )
 
 
+get_canonical_product = format_ai_product
+
+
 def get_ai_catalog(
     db: Session,
     merchant_id: Optional[int] = None,

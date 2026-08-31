@@ -25,15 +25,17 @@ def get_merchant_manifest(db: Session, merchant_id: int) -> AIMerchantManifest:
             "product_details": True,
             "inventory": True,
             "order_creation": True,
-            "payment": False,  # Payments strictly deferred to Phase 5
+            "payment": True,  # Phase 5: Razorpay Test Mode Available
         },
         endpoints={
             "manifest": f"/api/v1/ai/merchant/{merchant_id}/manifest",
             "profile": f"/api/v1/ai/merchant/{merchant_id}/profile",
             "catalog": "/api/v1/ai/catalog",
             "search": "/api/v1/ai/search",
-            "product": "/api/v1/ai/products/{{product_id}}",
+            "product": "/api/v1/ai/products/{product_id}",
             "orders": "/api/v1/ai/orders",
+            "payments_propose": "/api/v1/ai/payments/propose",
+            "payments_approve": "/api/v1/ai/payments/{payment_intent_id}/approve",
         },
     )
 
@@ -60,13 +62,13 @@ def get_merchant_profile(db: Session, merchant_id: int) -> AIMerchantProfile:
     return AIMerchantProfile(
         merchant_id=merchant.id,
         merchant_name=merchant.name,
-        description=merchant.description or "Retail Merchant Store",
+        description=merchant.description,
         currency=merchant.currency,
-        categories=sorted(categories),
+        categories=categories,
         commerce_capabilities={
-            "catalog": True,
-            "inventory": True,
-            "ordering": True,
-            "payments": False,
+            "catalog_browsing": True,
+            "structured_search": True,
+            "order_creation": True,
+            "payments": True,  # Phase 5: Gated Razorpay Test Mode
         },
     )

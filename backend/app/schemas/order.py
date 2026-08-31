@@ -42,6 +42,7 @@ class OrderResponse(BaseModel):
     status: OrderStatus
     total_amount: float
     currency: str
+    payment_status: Optional[str] = "NOT_AVAILABLE"
     created_at: datetime
     updated_at: datetime
     items: List[OrderItemResponse] = []

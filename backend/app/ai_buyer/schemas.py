@@ -1,6 +1,7 @@
 """Pydantic schemas for Simulated AI Buyer Agent."""
 from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, ConfigDict, Field
+from app.payments.schemas import PaymentIntentResponse
 
 
 class BuyerChatRequest(BaseModel):
@@ -26,6 +27,7 @@ class BuyerChatResponse(BaseModel):
     candidates: List[BuyerProductOption] = Field(default_factory=list)
     selected_product: Optional[BuyerProductOption] = None
     order_created: Optional[Dict[str, Any]] = None
+    payment_intent: Optional[PaymentIntentResponse] = None
     execution_steps: List[str] = Field(default_factory=list)
 
 
@@ -39,6 +41,7 @@ class BuyerSimulationRequest(BaseModel):
 class BuyerSimulationResponse(BaseModel):
     success: bool
     order: Optional[Dict[str, Any]] = None
+    payment_intent: Optional[PaymentIntentResponse] = None
     error_message: Optional[str] = None
     explainability: str
-    payment_note: str = "Payment not available in Phase 4. Will be supported in Phase 5."
+    payment_note: str = "Razorpay Test Mode Payment Intent created. Awaiting merchant/user approval."

@@ -1,10 +1,11 @@
-"""LangGraph State Machine for Simulated AI Buyer Agent."""
+"""LangGraph State Machine for Simulated AI Buyer Agent (Phase 5)."""
 import re
 import uuid
 from typing import Any, Dict, List, Optional
 from langgraph.graph import END, StateGraph
 from app.ai_buyer.state import BuyerState
 from app.ai_buyer.tools import AICommerceClient
+from app.payments.payment_service import PaymentService
 
 
 def parse_buyer_intent(text: str) -> Dict[str, Any]:
@@ -21,7 +22,7 @@ def parse_buyer_intent(text: str) -> Dict[str, Any]:
     }
 
     # Detect purchase/order intent
-    if any(w in text_lower for w in ["buy", "order", "purchase", "checkout", "get me", "place order"]):
+    if any(w in text_lower for w in ["buy", "order", "purchase", "checkout", "get me", "place order", "pay"]):
         constraints["is_purchase_intent"] = True
 
     # Extract price constraints (e.g. "under ₹3000", "< 3000", "below 2500", "under 1000")
@@ -90,7 +91,7 @@ def create_buyer_agent_graph(client: AICommerceClient):
 
         try:
             manifest = client.discover_merchant(merchant_id)
-            steps.append(f"Discovered merchant '{manifest.get('name')}' capabilities: ordering=True, payments=False")
+            steps.append(f"Discovered merchant '{manifest.get('name')}' capabilities: ordering=True, payments=True (Razorpay Test Mode)")
             return {
                 "merchant_capabilities": manifest.get("capabilities", {}),
                 "execution_steps": steps,
@@ -152,7 +153,6 @@ def create_buyer_agent_graph(client: AICommerceClient):
             return {}
 
         candidates = state.get("candidate_products", [])
-        req_lower = state.get("buyer_request", "").lower()
         steps = list(state.get("execution_steps", []))
 
         if not candidates:
@@ -169,12 +169,12 @@ def create_buyer_agent_graph(client: AICommerceClient):
         reasoning = (
             f"Selected '{selected['name']}' because:\n"
             f"✓ Matches query '{state.get('search_query')}'\n"
-            f"✓ Listed price ₹{selected['price']} is compatible\n"
+            f"✓ Listed price ₹{selected['price']:,.2f} is compatible\n"
             f"✓ Availability: {selected['availability']} ({selected['stock_quantity']} units in stock)\n"
             f"✓ Factual relevance score: {selected['relevance_score']}"
         )
 
-        steps.append(f"Selected candidate: '{selected['name']}' (₹{selected['price']})")
+        steps.append(f"Selected candidate: '{selected['name']}' (₹{selected['price']:,.2f})")
 
         return {
             "selected_product": selected,
@@ -212,9 +212,8 @@ def create_buyer_agent_graph(client: AICommerceClient):
             }
 
     def create_order_node(state: BuyerState) -> Dict[str, Any]:
-        # Only create order if user requested purchase/ordering and there are no errors
         req_lower = state.get("buyer_request", "").lower()
-        is_purchase = any(w in req_lower for w in ["buy", "order", "purchase", "checkout", "get me", "place order"])
+        is_purchase = any(w in req_lower for w in ["buy", "order", "purchase", "checkout", "get me", "place order", "pay"])
 
         if not is_purchase or state.get("errors") or not state.get("selected_product"):
             return {}
@@ -231,7 +230,7 @@ def create_buyer_agent_graph(client: AICommerceClient):
                 items=[{"product_id": selected["id"], "quantity": qty}],
                 idempotency_key=idempotency_key,
             )
-            steps.append(f"Order created successfully: #{order_data['order_id']} for ₹{order_data['total_amount']} (Payment: {order_data['payment_status']})")
+            steps.append(f"Order created successfully: #{order_data['order_id']} for ₹{order_data['total_amount']:,.2f}")
             return {
                 "order_id": order_data["order_id"],
                 "order_response": order_data,
@@ -244,9 +243,48 @@ def create_buyer_agent_graph(client: AICommerceClient):
                 "execution_steps": steps,
             }
 
+    def propose_payment_node(state: BuyerState) -> Dict[str, Any]:
+        """Phase 5: Propose Payment Intent with Deterministic Policy Bounds & Gated Approval."""
+        order_resp = state.get("order_response")
+        if not order_resp or state.get("errors") or not client.db:
+            return {}
+
+        merchant_id = state.get("merchant_id", 1)
+        order_id = order_resp["order_id"]
+        steps = list(state.get("execution_steps", []))
+        idempotency_key = f"buyer-pay-intent-{order_id}"
+
+        try:
+            intent_resp = PaymentService.propose_payment(
+                db=client.db,
+                order_id=order_id,
+                merchant_id=merchant_id,
+                idempotency_key=idempotency_key,
+            )
+            steps.append(
+                f"Proposed Payment Intent #{intent_resp.id} for ₹{intent_resp.amount:,.2f} "
+                f"(Risk: {intent_resp.risk_level}, Gated for User Approval)"
+            )
+            return {
+                "payment_intent_id": intent_resp.id,
+                "payment_amount": intent_resp.amount,
+                "payment_currency": intent_resp.currency,
+                "payment_risk": intent_resp.risk_level,
+                "payment_intent_response": intent_resp.model_dump(),
+                "payment_explainability": intent_resp.explainability,
+                "execution_steps": steps,
+            }
+        except Exception as e:
+            steps.append(f"Payment proposal failed policy check: {str(e)}")
+            return {
+                "errors": [f"Payment policy violation: {str(e)}"],
+                "execution_steps": steps,
+            }
+
     def format_buyer_response_node(state: BuyerState) -> Dict[str, Any]:
         errors = state.get("errors", [])
         order_resp = state.get("order_response")
+        payment_intent = state.get("payment_intent_response")
         candidates = state.get("candidate_products", [])
         selected = state.get("selected_product")
 
@@ -254,16 +292,26 @@ def create_buyer_agent_graph(client: AICommerceClient):
             response_text = (
                 f"⚠️ **Could not complete order:**\n"
                 f"{errors[0]}\n\n"
-                f"*No payment was attempted. Your account and merchant data remain unaffected.*"
+                f"*No payment was executed. Your account and merchant limits remain unaffected.*"
+            )
+        elif order_resp and payment_intent:
+            response_text = (
+                f"✅ **Order Created & Payment Intent Proposed!**\n\n"
+                f"• **Order ID:** #{order_resp['order_id']}\n"
+                f"• **Total Amount:** ₹{order_resp['total_amount']:,.2f} {order_resp['currency']}\n"
+                f"• **Payment Intent:** #{payment_intent['id']} ({payment_intent['status']})\n"
+                f"• **Risk Level:** `{payment_intent['risk_level']}`\n\n"
+                f"**Why this payment is permitted:**\n"
+                f"{state.get('payment_explainability', '')}\n\n"
+                f"👉 *Human/Merchant approval is required before Razorpay Test Mode checkout executes.*"
             )
         elif order_resp:
             response_text = (
                 f"✅ **Order Created via AI Commerce Interface!**\n\n"
                 f"• **Order ID:** #{order_resp['order_id']}\n"
                 f"• **Total Amount:** ₹{order_resp['total_amount']:,.2f} {order_resp['currency']}\n"
-                f"• **Status:** {order_resp['status']}\n"
-                f"• **Payment Status:** `{order_resp['payment_status']}` (Payment integration reserved for Phase 5)\n\n"
-                f"**Explainability & Selection Rationale:**\n"
+                f"• **Status:** {order_resp['status']}\n\n"
+                f"**Selection Rationale:**\n"
                 f"{state.get('selection_reasoning', '')}"
             )
         elif candidates:
@@ -288,6 +336,7 @@ def create_buyer_agent_graph(client: AICommerceClient):
     builder.add_node("evaluate_and_select", evaluate_and_select_node)
     builder.add_node("verify_availability", verify_availability_node)
     builder.add_node("create_order", create_order_node)
+    builder.add_node("propose_payment", propose_payment_node)
     builder.add_node("format_buyer_response", format_buyer_response_node)
 
     builder.set_entry_point("understand_intent")
@@ -296,7 +345,8 @@ def create_buyer_agent_graph(client: AICommerceClient):
     builder.add_edge("search_catalog", "evaluate_and_select")
     builder.add_edge("evaluate_and_select", "verify_availability")
     builder.add_edge("verify_availability", "create_order")
-    builder.add_edge("create_order", "format_buyer_response")
+    builder.add_edge("create_order", "propose_payment")
+    builder.add_edge("propose_payment", "format_buyer_response")
     builder.add_edge("format_buyer_response", END)
 
     return builder.compile()

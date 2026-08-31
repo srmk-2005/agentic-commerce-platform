@@ -17,14 +17,14 @@ def test_merchant_manifest_and_capabilities(client: TestClient):
     assert data["name"] == "Discovery Sports"
     assert data["version"] == "1.0"
 
-    # Capability guarantees: ordering supported, payments strictly false in Phase 4
+    # Capability guarantees: ordering supported, payments enabled in Phase 5
     caps = data["capabilities"]
     assert caps["catalog"] is True
     assert caps["search"] is True
     assert caps["product_details"] is True
     assert caps["inventory"] is True
     assert caps["order_creation"] is True
-    assert caps["payment"] is False
+    assert caps["payment"] is True
 
     # Endpoint routing map
     eps = data["endpoints"]
@@ -57,4 +57,4 @@ def test_merchant_profile(client: TestClient):
     assert prof["merchant_id"] == m_id
     assert "Footwear" in prof["categories"]
     assert "Accessories" in prof["categories"]
-    assert prof["commerce_capabilities"]["payments"] is False
+    assert prof["commerce_capabilities"]["payments"] is True

@@ -25,6 +25,11 @@ class Settings(BaseSettings):
     GROQ_MODEL: str = "llama-3.3-70b-versatile"
     MOCK_AI_MODE: bool = False
 
+    # Razorpay Test Mode Configuration (Phase 5)
+    RAZORPAY_KEY_ID: str = "rzp_test_mock_key_id"
+    RAZORPAY_KEY_SECRET: str = "rzp_test_mock_key_secret"
+    RAZORPAY_WEBHOOK_SECRET: Optional[str] = "rzp_test_mock_webhook_secret"
+
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def assemble_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:
